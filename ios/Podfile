@@ -1,9 +1,8 @@
 platform :ios, '13.0'
-
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
-  'Debug' => :debug,
+  'Debug'   => :debug,
   'Profile' => :release,
   'Release' => :release,
 }
@@ -38,11 +37,14 @@ end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
+    # Inyecta ajustes de Flutter
     flutter_additional_ios_build_settings(target)
 
-    # Esto es importante para evitar errores de compatibilidad
     target.build_configurations.each do |config|
+      # Excluir arm64 en simulador
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      # Permitir includes entre comillas en headers de framework
+      config.build_settings['CLANG_ALLOW_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'YES'
     end
   end
 end

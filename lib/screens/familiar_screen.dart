@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'ecg_viewer_screen.dart';
 class InterfazFamiliar extends StatelessWidget {
   const InterfazFamiliar({super.key});
 
@@ -33,6 +33,12 @@ class InterfazFamiliar extends StatelessWidget {
               context,
               texto: '⚙️ Configurar Alertas',
               destino: const PantallaSimulada(titulo: 'Configuración de alertas'),
+            ),
+            const SizedBox(height: 20),
+            _botonOpcion(
+              context,
+              texto: '📊 Ver Señal ECG en Vivo',  // Nuevo botón para ver la señal ECG
+              destino: const EcgViewerScreen(), // Redirige a la pantalla de ver la señal ECG
             ),
           ],
         ),

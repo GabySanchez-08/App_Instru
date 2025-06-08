@@ -34,6 +34,8 @@ dependencies:
   firebase_auth: ^5.5.3
   firebase_core: ^3.13.0
   cloud_firestore: ^5.6.7
+  firebase_database: ^11.3.5      # nuevo ara escuchar en tiempo real desde Firebase # Actualiza a la última versión
+  fl_chart: ^0.66.0
   
 dev_dependencies:
   flutter_test:
