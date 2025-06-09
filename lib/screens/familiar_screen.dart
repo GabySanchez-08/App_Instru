@@ -1,12 +1,10 @@
 // familiar_screen.dart// familiar_screen.dart
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';    // ← Import FirebaseAuth
-import 'login_screen.dart';                           // ← Import LoginScreen
+import 'package:flutter/material.dart';    
 import 'ecg_viewer_screen.dart';
-import 'perfil_screen.dart';
+
 
 import '../widgets/device_status.dart';
-
+import '../widgets/app_menu.dart';
 
 class InterfazFamiliar extends StatelessWidget {
   const InterfazFamiliar({super.key});
@@ -14,47 +12,13 @@ class InterfazFamiliar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+     appBar: const AppMenu(title: 'Resumen'),
       body: CustomScrollView(
         slivers: [
           // 1) AppBar flotante con menú
-          SliverAppBar(
-            floating: true,
-            snap: true,
-            title: const Text('Resumen'),
-            actions: [
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'perfil':
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PerfilScreen()),
-                      );
-                      break;
-                    case 'notificaciones':
-                      _showInfo(context, 'Configuración de notificaciones');
-                      break;
-                    case 'cerrar':
-                      await FirebaseAuth.instance.signOut();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
-                          (route) => false,
-                        );
-                      }
-                      break;
-                  }
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'cerrar', child: Text('Cerrar sesión')),
-                ],
-              ),
-            ],
-          ),
 
           // Nuevo bloque: Estado del dispositivo
+          // Indica si está conectado o desconectado
           const SliverToBoxAdapter(
             child: DeviceStatusBanner(),
           ),

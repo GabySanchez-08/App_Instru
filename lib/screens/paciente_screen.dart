@@ -1,10 +1,7 @@
 // paciente_screen.dart
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'perfil_screen.dart';
-import 'login_screen.dart';
-
 import '../widgets/device_status.dart';
+import '../widgets/app_menu.dart';
 
 class InterfazPaciente extends StatelessWidget {
   const InterfazPaciente({super.key});
@@ -12,47 +9,10 @@ class InterfazPaciente extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Barra superior de titlo y menú desplegable de opciones (...)
+     appBar: const AppMenu(title: 'Resumen'),
       body: CustomScrollView(
         slivers: [
-          // 1) AppBar flotante
-          SliverAppBar(
-            floating: true,
-            snap: true,
-            title: const Text('Resumen'),
-            actions: [
-              PopupMenuButton<String>(
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'perfil':
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PerfilScreen()),
-                      );
-                      break;
-                    case 'notificaciones':
-                      _showInfo(context, 'Configuración de notificaciones');
-                      break;
-                    case 'cerrar':
-                      await FirebaseAuth.instance.signOut();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
-                          (route) => false,
-                        );
-                      }
-                      break;
-                  }
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'perfil', child: Text('Ver perfil')),
-                  PopupMenuItem(value: 'notificaciones', child: Text('Config. notificaciones')),
-                  PopupMenuItem(value: 'cerrar', child: Text('Cerrar sesión')),
-                ],
-              ),
-            ],
-          ),
-
           // Nuevo bloque: Estado del dispositivo
           const SliverToBoxAdapter(
             child: DeviceStatusBanner(),
@@ -90,7 +50,7 @@ class InterfazPaciente extends StatelessWidget {
                   onTap: () => _showInfo(context, 'Instrucciones de conexión'),
                 ),
                 _ActionCard(
-                  icon: Icons.report,
+                  icon: Icons.insert_drive_file,
                   label: 'Generar Reporte',
                   color: Colors.green,
                   onTap: () => _showInfo(context, 'Exportando reporte...'),
