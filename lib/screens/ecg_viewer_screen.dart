@@ -1,7 +1,8 @@
-import 'dart:async'; // Para manejar la suscripción
+// lib/screens/ecg_viewer_screen.dart
 
-import 'package:firebase_database/firebase_database.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class EcgViewerScreen extends StatefulWidget {
@@ -12,74 +13,76 @@ class EcgViewerScreen extends StatefulWidget {
 }
 
 class EcgViewerScreenState extends State<EcgViewerScreen> {
-  final DatabaseReference _ecgDataRef = FirebaseDatabase.instance.ref('/ECG_Data');
-  final List<_ECGData> dataPoints = [];
-
-  late StreamSubscription<DatabaseEvent> _ecgSubscription;
+  // Asumimos que cada ChildAdded en /ECG_Data es un latido
+  final DatabaseReference _ecgRef = FirebaseDatabase.instance.ref('/ECG_Data');
+  final List<_ECGData> _beats = []; // almacena sólo los últimos 3 latidos
+  late StreamSubscription<DatabaseEvent> _sub;
 
   @override
   void initState() {
     super.initState();
-
-    // Escuchar los nuevos datos de ECG
-    _ecgSubscription = _ecgDataRef.onChildAdded.listen(_onDataAdded);
+    _sub = _ecgRef.onChildAdded.listen(_onBeat);
   }
 
-  // Cancelar la suscripción cuando el widget se destruye
-  @override
-  void dispose() {
-    _ecgSubscription.cancel();
-    super.dispose();
-  }
-
-  // Manejar nuevos datos desde Firebase
-  void _onDataAdded(DatabaseEvent event) {
-    final dynamic data = event.snapshot.value;
-    final String? timestamp = event.snapshot.key;
-
-    if (!mounted) return; // Verifica que el widget siga en el árbol
-
-    if (data is num && timestamp != null) {
+  void _onBeat(DatabaseEvent ev) {
+    final key = ev.snapshot.key;
+    if (!mounted || key == null) return;
+    // Aquí val podría contener la amplitud, pero la ignoramos
+    final timestamp = int.tryParse(key);
+    if (timestamp != null) {
       setState(() {
-        dataPoints.add(_ECGData(timestamp, data.toDouble()));
+        if (_beats.length == 40) _beats.removeAt(0);
+        _beats.add(_ECGData(DateTime.fromMillisecondsSinceEpoch(timestamp)));
       });
-
-      print('🟢 ECG agregado - Timestamp: $timestamp, Value: $data');
-    } else {
-      print('⚠️ Dato inesperado en Firebase: $data');
     }
   }
 
   @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+
+  double _calculateBpm() {
+    if (_beats.length < 2) return 0;
+    // calcular intervalos
+    final intervals = <double>[];
+    for (var i = 1; i < _beats.length; i++) {
+      intervals.add(
+        _beats[i].time.difference(_beats[i - 1].time).inMilliseconds / 1000,
+      );
+    }
+    final avg = intervals.reduce((a, b) => a + b) / intervals.length;
+    if (avg == 0) return 0;
+    return 60 / avg;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final spots = dataPoints.asMap().entries.map(
-      (entry) {
-        final index = entry.key.toDouble();
-        final value = entry.value.value;
-        return FlSpot(index, value);
-      },
-    ).toList();
+    final bpm = _calculateBpm().round();
+    final spots = List<FlSpot>.generate(
+      _beats.length,
+      (i) => FlSpot(i.toDouble(), 1), // valor fijo para mostrar puntos alineados
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ECG - Gráfico + Lista'),
-      ),
+      appBar: AppBar(title: const Text('ECG en Vivo')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Gráfico (parte superior, altura fija)
+            // 1) Gráfico simple mostrando max 3 puntos
             SizedBox(
               height: 200,
               child: LineChart(
                 LineChartData(
-                  minY: 400,
-                  maxY: 1600,
+                  minY: 0,
+                  maxY: 2,
                   lineBarsData: [
                     LineChartBarData(
                       spots: spots,
-                      isCurved: true,
-                      dotData: FlDotData(show: false),
+                      isCurved: false,
+                      dotData: FlDotData(show: true),
                       belowBarData: BarAreaData(show: false),
                       color: Colors.red,
                     ),
@@ -90,23 +93,46 @@ class EcgViewerScreenState extends State<EcgViewerScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
 
-            // Título
-            const Text(
-              'Últimos datos recibidos',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const SizedBox(height: 16),
+
+            // 2) Mostrar BPM
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('BPM: ',
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(bpm > 0 ? '$bpm' : '--',
+                    style:
+                        TextStyle(fontSize: 24, color: Colors.redAccent)),
+              ],
             ),
 
-            // Lista de datos (resto del espacio)
+            const SizedBox(height: 24),
+
+            // 3) Botón a últimas alertas
+            ElevatedButton.icon(
+              icon: const Icon(Icons.warning),
+              label: const Text('Últimas Alertas'),
+              onPressed: () {
+                // Navegar a tu pantalla de alertas
+                Navigator.pushNamed(context, '/alerts');
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // 4) Lista de timestamps
             Expanded(
               child: ListView.builder(
-                itemCount: dataPoints.length,
-                itemBuilder: (context, index) {
-                  final data = dataPoints[index];
+                itemCount: _beats.length,
+                itemBuilder: (ctx, i) {
+                  final t = _beats[i].time;
                   return ListTile(
-                    title: Text('Timestamp: ${data.time}'),
-                    subtitle: Text('Valor ECG: ${data.value.toStringAsFixed(2)} mV'),
+                    leading: const Icon(Icons.favorite, color: Colors.red),
+                    title: Text(
+                        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}'),
                   );
                 },
               ),
@@ -119,7 +145,6 @@ class EcgViewerScreenState extends State<EcgViewerScreen> {
 }
 
 class _ECGData {
-  _ECGData(this.time, this.value);
-  final String time;
-  final double value;
+  _ECGData(this.time);
+  final DateTime time;
 }
