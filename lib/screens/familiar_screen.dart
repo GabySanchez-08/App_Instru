@@ -40,7 +40,7 @@ class InterfazFamiliar extends StatelessWidget {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '2 alertas nuevas del paciente',
+                          '',
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
@@ -109,17 +109,17 @@ class InterfazFamiliar extends StatelessWidget {
                 _HistoryItem(
                   icon: Icons.insert_drive_file,
                   title: 'Reportes generados',
-                  subtitle: '3 en la última semana',
+                  subtitle: '',
                 ),
                 _HistoryItem(
                   icon: Icons.chat_bubble,
                   title: 'Mensajes enviados',
-                  subtitle: '5 en el último mes',
+                  subtitle: '',
                 ),
                 _HistoryItem(
                   icon: Icons.settings,
                   title: 'Alertas configuradas',
-                  subtitle: '2 umbrales activos',
+                  subtitle: '',
                 ),
                 const SizedBox(height: 24),
               ],

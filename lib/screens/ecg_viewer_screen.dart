@@ -13,128 +13,126 @@ class EcgViewerScreen extends StatefulWidget {
 }
 
 class EcgViewerScreenState extends State<EcgViewerScreen> {
-  // Asumimos que cada ChildAdded en /ECG_Data es un latido
-  final DatabaseReference _ecgRef = FirebaseDatabase.instance.ref('/ECG_Data');
-  final List<_ECGData> _beats = []; // almacena sólo los últimos 3 latidos
-  late StreamSubscription<DatabaseEvent> _sub;
+  // Referencias a cada derivada
+  late final DatabaseReference _refD1;
+  late final DatabaseReference _refD2;
+  late final DatabaseReference _refD3;
+  late final DatabaseReference _refBpm;
+
+  // Listas circulares de 5s a 100Hz = 500 puntos
+  final List<FlSpot> _d1 = [];
+  final List<FlSpot> _d2 = [];
+  final List<FlSpot> _d3 = [];
+  double _timeCounter = 0; // segundos transcurridos
+  double _bpm = 0;
+
+  late StreamSubscription<DatabaseEvent> _subD1;
+  late StreamSubscription<DatabaseEvent> _subD2;
+  late StreamSubscription<DatabaseEvent> _subD3;
+  late StreamSubscription<DatabaseEvent> _subBpm;
 
   @override
   void initState() {
     super.initState();
-    _sub = _ecgRef.onChildAdded.listen(_onBeat);
+    final root = FirebaseDatabase.instance.ref('ECG_Data');
+    _refD1 = root.child('D1');
+    _refD2 = root.child('D2');
+    _refD3 = root.child('D3');
+    _refBpm = root.child('BPM');
+
+    // Escuchar cada derivada
+    _subD1 = _refD1.onChildAdded.listen((ev) => _onData(ev, _d1));
+    _subD2 = _refD2.onChildAdded.listen((ev) => _onData(ev, _d2));
+    _subD3 = _refD3.onChildAdded.listen((ev) => _onData(ev, _d3));
+    _subBpm = _refBpm.onValue.listen((ev) {
+      final v = ev.snapshot.value;
+      if (v is num) {
+        setState(() => _bpm = v.toDouble());
+      }
+    });
   }
 
-  void _onBeat(DatabaseEvent ev) {
-    final key = ev.snapshot.key;
-    if (!mounted || key == null) return;
-    // Aquí val podría contener la amplitud, pero la ignoramos
-    final timestamp = int.tryParse(key);
-    if (timestamp != null) {
+  void _onData(DatabaseEvent ev, List<FlSpot> list) {
+    final raw = ev.snapshot.value;
+    if (raw is num) {
+      // Añadir nuevo punto en tiempo incremental
       setState(() {
-        if (_beats.length == 40) _beats.removeAt(0);
-        _beats.add(_ECGData(DateTime.fromMillisecondsSinceEpoch(timestamp)));
+        list.add(FlSpot(_timeCounter, raw.toDouble()));
+        _timeCounter += 1 / 100; // siguiente punto a +0.01s
+        // Mantener solo los últimos 5 segundos
+        while (list.isNotEmpty && _timeCounter - list.first.x > 5) {
+          list.removeAt(0);
+        }
       });
     }
   }
 
   @override
   void dispose() {
-    _sub.cancel();
+    _subD1.cancel();
+    _subD2.cancel();
+    _subD3.cancel();
+    _subBpm.cancel();
     super.dispose();
   }
 
-  double _calculateBpm() {
-    if (_beats.length < 2) return 0;
-    // calcular intervalos
-    final intervals = <double>[];
-    for (var i = 1; i < _beats.length; i++) {
-      intervals.add(
-        _beats[i].time.difference(_beats[i - 1].time).inMilliseconds / 1000,
-      );
-    }
-    final avg = intervals.reduce((a, b) => a + b) / intervals.length;
-    if (avg == 0) return 0;
-    return 60 / avg;
+  LineChartData _buildChart(List<FlSpot> spots) {
+    return LineChartData(
+      minX: _timeCounter > 5 ? _timeCounter - 5 : 0,
+      maxX: _timeCounter,
+      borderData: FlBorderData(show: true),
+      titlesData: FlTitlesData(
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(showTitles: true, reservedSize: 22),
+        ),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+        ),
+      ),
+      gridData: FlGridData(show: true),
+      lineBarsData: [
+        LineChartBarData(
+          spots: spots,
+          isCurved: false,
+          dotData: FlDotData(show: false),
+          color: Colors.redAccent,
+          barWidth: 2,
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bpm = _calculateBpm().round();
-    final spots = List<FlSpot>.generate(
-      _beats.length,
-      (i) => FlSpot(i.toDouble(), 1), // valor fijo para mostrar puntos alineados
-    );
-
     return Scaffold(
       appBar: AppBar(title: const Text('ECG en Vivo')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // 1) Gráfico simple mostrando max 3 puntos
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                LineChartData(
-                  minY: 0,
-                  maxY: 2,
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: false,
-                      dotData: FlDotData(show: true),
-                      belowBarData: BarAreaData(show: false),
-                      color: Colors.red,
-                    ),
-                  ],
-                  titlesData: FlTitlesData(show: false),
-                  gridData: FlGridData(show: false),
-                  borderData: FlBorderData(show: false),
-                ),
-              ),
-            ),
-
+            // BPM arriba
+            Text('BPM: ${_bpm.round()}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
 
-            // 2) Mostrar BPM
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('BPM: ',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Text(bpm > 0 ? '$bpm' : '--',
-                    style:
-                        TextStyle(fontSize: 24, color: Colors.redAccent)),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // 3) Botón a últimas alertas
-            ElevatedButton.icon(
-              icon: const Icon(Icons.warning),
-              label: const Text('Últimas Alertas'),
-              onPressed: () {
-                // Navegar a tu pantalla de alertas
-                Navigator.pushNamed(context, '/alerts');
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // 4) Lista de timestamps
+            // Tres gráficos
             Expanded(
-              child: ListView.builder(
-                itemCount: _beats.length,
-                itemBuilder: (ctx, i) {
-                  final t = _beats[i].time;
-                  return ListTile(
-                    leading: const Icon(Icons.favorite, color: Colors.red),
-                    title: Text(
-                        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}'),
-                  );
-                },
+              child: ListView(
+                children: [
+                  SizedBox(
+                    height: 120,
+                    child: LineChart(_buildChart(_d1)),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 120,
+                    child: LineChart(_buildChart(_d2)),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 120,
+                    child: LineChart(_buildChart(_d3)),
+                  ),
+                ],
               ),
             ),
           ],
@@ -142,9 +140,4 @@ class EcgViewerScreenState extends State<EcgViewerScreen> {
       ),
     );
   }
-}
-
-class _ECGData {
-  _ECGData(this.time);
-  final DateTime time;
 }

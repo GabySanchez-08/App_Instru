@@ -2,6 +2,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/device_status.dart';
 import '../widgets/app_menu.dart';
+import 'colocacion_screen.dart'; 
+import 'recomendaciones_screen.dart';  //
+import 'conexion_screen.dart';  //
+
 
 class InterfazPaciente extends StatelessWidget {
   const InterfazPaciente({super.key});
@@ -26,9 +30,9 @@ class InterfazPaciente extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 children: const [
-                  _SummaryCard(icon: Icons.warning,      label: 'Alertas',    value: '1 nueva'),
-                  _SummaryCard(icon: Icons.insert_chart, label: 'Reportes',   value: '3 esta semana'),
-                  _SummaryCard(icon: Icons.message,      label: 'Mensajes',   value: '2 recibidos'),
+                  _SummaryCard(icon: Icons.warning,      label: 'Alertas',    value: ''),
+                  _SummaryCard(icon: Icons.insert_chart, label: 'Reportes',   value: ''),
+                  _SummaryCard(icon: Icons.message,      label: 'Mensajes',   value: ''),
                 ],
               ),
             ),
@@ -47,7 +51,9 @@ class InterfazPaciente extends StatelessWidget {
                   icon: Icons.usb,
                   label: 'Conectar Dispositivo',
                   color: Colors.blue,
-                  onTap: () => _showInfo(context, 'Instrucciones de conexión'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ConexionScreen())),
                 ),
                 _ActionCard(
                   icon: Icons.insert_drive_file,
@@ -65,13 +71,23 @@ class InterfazPaciente extends StatelessWidget {
                   icon: Icons.favorite,
                   label: 'Tips Salud',
                   color: Colors.orange,
-                  onTap: () => _showInfo(context, 'Consejos para tu corazón'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TipsSalud())),
                 ),
                 _ActionCard(
                   icon: Icons.warning,
                   label: 'SOS',
                   color: Colors.red,
                   onTap: () => _showInfo(context, 'SOS enviado 🚨'),
+                ),
+                _ActionCard(
+                  icon: Icons.electrical_services,
+                  label: 'Guía Electrodos',
+                  color: const Color.fromARGB(255, 93, 236, 234),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ColocacionScreen())),
                 ),
               ],
             ),
