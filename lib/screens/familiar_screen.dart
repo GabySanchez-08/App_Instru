@@ -5,6 +5,7 @@ import 'ecg_viewer_screen.dart';
 
 import '../widgets/device_status.dart';
 import '../widgets/app_menu.dart';
+import 'chat_screen.dart';  //
 
 class InterfazFamiliar extends StatelessWidget {
   const InterfazFamiliar({super.key});
@@ -69,9 +70,19 @@ class InterfazFamiliar extends StatelessWidget {
                 ),
                 _ActionCard(
                   icon: Icons.chat_bubble,
-                  label: 'Enviar Mensaje',
-                  color: Colors.green,
-                  onTap: () => _showInfo(context, 'Enviando mensaje...'),
+                  label: 'Ver Mensajes',
+                  color: Colors.purple,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChatScreen(
+                          myRole: 'paciente',
+                          otherRole: 'familiar',
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 _ActionCard(
                   icon: Icons.settings,

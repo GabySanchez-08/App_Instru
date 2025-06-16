@@ -5,7 +5,7 @@ import '../widgets/app_menu.dart';
 import 'colocacion_screen.dart'; 
 import 'recomendaciones_screen.dart';  //
 import 'conexion_screen.dart';  //
-
+import 'chat_screen.dart';  //
 
 class InterfazPaciente extends StatelessWidget {
   const InterfazPaciente({super.key});
@@ -62,10 +62,20 @@ class InterfazPaciente extends StatelessWidget {
                   onTap: () => _showInfo(context, 'Exportando reporte...'),
                 ),
                 _ActionCard(
-                  icon: Icons.message,
+                  icon: Icons.chat_bubble,
                   label: 'Ver Mensajes',
                   color: Colors.purple,
-                  onTap: () => _showInfo(context, 'Mensajes de tu familiar'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChatScreen(
+                          myRole: 'paciente',
+                          otherRole: 'familiar',
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 _ActionCard(
                   icon: Icons.favorite,
