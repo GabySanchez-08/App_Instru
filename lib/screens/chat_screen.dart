@@ -16,10 +16,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final _ctrl = TextEditingController();
   bool _sending = false;
 
-  void _send() async {
+  Future<void> _send() async {
     final text = _ctrl.text.trim();
     if (text.isEmpty) return;
     setState(() => _sending = true);
+
     final me = FirebaseAuth.instance.currentUser!;
     await FirebaseFirestore.instance.collection('mensajes').add({
       'fromId': me.uid,
@@ -28,17 +29,17 @@ class _ChatScreenState extends State<ChatScreen> {
       'text': text,
       'timestamp': FieldValue.serverTimestamp(),
     });
+
     _ctrl.clear();
     setState(() => _sending = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    // 1) Traemos *todos* los mensajes, ordenados por fecha
     final stream = FirebaseFirestore.instance
         .collection('mensajes')
-        .where('fromRole', whereIn: [widget.myRole, widget.otherRole])
-        .where('toRole', whereIn: [widget.myRole, widget.otherRole])
-        .orderBy('timestamp')
+        .orderBy('timestamp', descending: false)
         .snapshots();
 
     return Scaffold(
@@ -49,8 +50,19 @@ class _ChatScreenState extends State<ChatScreen> {
             child: StreamBuilder<QuerySnapshot>(
               stream: stream,
               builder: (ctx, snap) {
-                if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-                final docs = snap.data!.docs;
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final allDocs = snap.data?.docs ?? [];
+                // 2) Filtramos en el cliente solo los que realmente son entre estos dos roles
+                final docs = allDocs.where((doc) {
+                  final m = doc.data()! as Map<String, dynamic>;
+                  final from = m['fromRole'] as String?;
+                  final to   = m['toRole']   as String?;
+                  return (from == widget.myRole && to == widget.otherRole)
+                      || (from == widget.otherRole && to == widget.myRole);
+                }).toList();
+
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: docs.length,
@@ -74,21 +86,31 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _ctrl,
-                    decoration: const InputDecoration(hintText: 'Escribe un mensaje'),
+
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _ctrl,
+                      textInputAction: TextInputAction.send,
+                      decoration: const InputDecoration(hintText: 'Escribe un mensaje'),
+                      onSubmitted: (_) => _sending ? null : _send(),
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: _sending ? const CircularProgressIndicator() : const Icon(Icons.send),
-                  onPressed: _sending ? null : _send,
-                ),
-              ],
+                  _sending
+                      ? const SizedBox(
+                          width: 24, height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.send),
+                          onPressed: _send,
+                        ),
+                ],
+              ),
             ),
           ),
         ],

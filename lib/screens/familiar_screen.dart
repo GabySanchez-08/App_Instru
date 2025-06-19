@@ -77,8 +77,8 @@ class InterfazFamiliar extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) => const ChatScreen(
-                          myRole: 'paciente',
-                          otherRole: 'familiar',
+                          myRole: 'familiar',
+                          otherRole: 'paciente',
                         ),
                       ),
                     );
