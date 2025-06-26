@@ -6,6 +6,7 @@ import 'colocacion_screen.dart';
 import 'recomendaciones_screen.dart';  //
 import 'conexion_screen.dart';  //
 import 'chat_screen.dart';  //
+import 'reporte_screen.dart';
 
 class InterfazPaciente extends StatelessWidget {
   const InterfazPaciente({super.key});
@@ -59,7 +60,9 @@ class InterfazPaciente extends StatelessWidget {
                   icon: Icons.insert_drive_file,
                   label: 'Generar Reporte',
                   color: Colors.green,
-                  onTap: () => _showInfo(context, 'Exportando reporte...'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ReporteScreen())),
                 ),
                 _ActionCard(
                   icon: Icons.chat_bubble,
