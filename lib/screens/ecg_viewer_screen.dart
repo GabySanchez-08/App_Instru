@@ -1,8 +1,9 @@
-import 'dart:async';
-import 'dart:convert';
+// ...importaciones igual...
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'dart:async';
+import 'dart:convert';
 
 class EcgViewerScreen extends StatefulWidget {
   const EcgViewerScreen({super.key});
@@ -87,15 +88,14 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
   void _tick(List<double> pending, List<FlSpot> buffer) {
     if (pending.isEmpty) return;
     final y = pending.removeAt(0);
-    buffer.add(FlSpot(0, y)); // El valor X se recalcula abajo
+    buffer.add(FlSpot(0, y));
 
     if (buffer.length > 400) {
       buffer.removeAt(0);
     }
 
-    // Reasignar los valores X según índice para mantener ventana estable
     for (int i = 0; i < buffer.length; i++) {
-      buffer[i] = FlSpot(i / 100.0, buffer[i].y); // 100 Hz → 5 s máx
+      buffer[i] = FlSpot(i / 100.0, buffer[i].y);
     }
 
     setState(() {});
@@ -116,15 +116,6 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
   }
 
   LineChartData _chartData(List<FlSpot> spots, Color color) {
-    if (spots.isEmpty) {
-      return LineChartData(
-        borderData: FlBorderData(show: false),
-        gridData: FlGridData(show: false),
-        titlesData: FlTitlesData(show: false),
-        lineBarsData: [],
-      );
-    }
-
     return LineChartData(
       minX: 0.0,
       maxX: 4.0,
@@ -132,11 +123,21 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
       gridData: FlGridData(show: true),
       titlesData: FlTitlesData(
         bottomTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: true, interval: 1),
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: 1,
+            getTitlesWidget: (value, _) => Text('${value.toStringAsFixed(0)}s', style: const TextStyle(fontSize: 10)),
+          ),
         ),
         leftTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: true),
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 30,
+            getTitlesWidget: (value, _) => Text('${value.toStringAsFixed(1)}', style: const TextStyle(fontSize: 10)),
+          ),
         ),
+        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
       lineBarsData: [
         LineChartBarData(
@@ -150,8 +151,17 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
     );
   }
 
-  Widget _buildChart(List<FlSpot> buf, Color color) =>
-      SizedBox(height: 120, child: LineChart(_chartData(buf, color)));
+  Widget _buildChart(String titulo, List<FlSpot> buf, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 6),
+        SizedBox(height: 120, child: LineChart(_chartData(buf, color))),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
 
   @override
   void dispose() {
@@ -173,17 +183,14 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text('BPM: ${_bpm.round()}',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text('BPM: ${_bpm.round()}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             Expanded(
               child: ListView(
                 children: [
-                  _buildChart(_bufD1, Colors.redAccent),
-                  const SizedBox(height: 12),
-                  _buildChart(_bufD2, Colors.green),
-                  const SizedBox(height: 12),
-                  _buildChart(_bufD3, Colors.blue),
+                  _buildChart('1ra Derivada', _bufD1, Colors.redAccent),
+                  _buildChart('2da Derivada', _bufD2, Colors.green),
+                  _buildChart('3ra Derivada', _bufD3, Colors.blue),
                 ],
               ),
             ),

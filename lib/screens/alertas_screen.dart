@@ -26,25 +26,79 @@ class AlertasScreen extends StatelessWidget {
   }
 
   Widget _buildGrafica(String label, List<FlSpot> puntos) {
+    final xMax = puntos.isNotEmpty ? puntos.last.x : 100;
+    final yValues = puntos.map((e) => e.y);
+    final yMin = yValues.isNotEmpty ? yValues.reduce((a, b) => a < b ? a : b) : -1;
+    final yMax = yValues.isNotEmpty ? yValues.reduce((a, b) => a > b ? a : b) : 1;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(
-          height: 150,
+          height: 200,
           child: LineChart(
             LineChartData(
+              minX: 0,
+              maxX: xMax.toDouble(),
+              minY: yMin - 0.5,
+              maxY: yMax + 0.5,
               lineBarsData: [
                 LineChartBarData(
                   spots: puntos,
-                  isCurved: true,
+                  isCurved: false,
+                  color: Colors.blueAccent,
                   dotData: FlDotData(show: false),
                   belowBarData: BarAreaData(show: false),
                 ),
               ],
-              gridData: FlGridData(show: false),
-              titlesData: FlTitlesData(show: false),
-              borderData: FlBorderData(show: false),
+              gridData: FlGridData(show: true),
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 22,
+                    interval: 100,
+                    getTitlesWidget: (value, meta) {
+                      return Text('${(value / 100).toStringAsFixed(1)}s',
+                          style: const TextStyle(fontSize: 10));
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 0.5,
+                    getTitlesWidget: (value, meta) {
+                      return Text(value.toStringAsFixed(1),
+                          style: const TextStyle(fontSize: 10));
+                    },
+                  ),
+                ),
+                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              ),
+              borderData: FlBorderData(
+                show: true,
+                border: const Border(
+                  left: BorderSide(),
+                  bottom: BorderSide(),
+                ),
+              ),
+              lineTouchData: LineTouchData(
+                enabled: true,
+                touchTooltipData: LineTouchTooltipData(
+                  tooltipBgColor: Colors.black87,
+                  getTooltipItems: (spots) => spots.map((spot) {
+                    return LineTooltipItem(
+                      '${(spot.x / 100).toStringAsFixed(2)}s\n${spot.y.toStringAsFixed(2)}',
+                      const TextStyle(color: Colors.white),
+                    );
+                  }).toList(),
+                ),
+                handleBuiltInTouches: true,
+                touchSpotThreshold: 10,
+              ),
             ),
           ),
         ),
@@ -69,7 +123,7 @@ class AlertasScreen extends StatelessWidget {
           final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
           final alerta = data['alerta'] as Map<dynamic, dynamic>;
           final mensaje = data['mensaje'] ?? 'Alerta';
-          final hora = data['hora'] ?? '--:--';
+          //final hora = data['hora'] ?? '--:--';
           final horaInicio = data['hora_inicio'] ?? '--:--';
 
           final derivaciones = alerta['Derivaciones'] as Map<dynamic, dynamic>?;
@@ -87,7 +141,7 @@ class AlertasScreen extends StatelessWidget {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Evento: $mensaje'),
+                    //Text('Hora de alerta: $hora'),
                     Text('Inicio del evento: $horaInicio'),
                   ],
                 ),
