@@ -31,7 +31,7 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
     _refD1 = root.child('D1');
     _refD2 = root.child('D2');
     _refD3 = root.child('D3');
-    _refBpm = root.child('BPM/BPM_realtime');
+    _refBpm = root.child('BPM_realtime');
 
     _subD1 = _refD1.onValue.listen((e) => _handleNewArray(e.snapshot.value, 1));
     _subD2 = _refD2.onValue.listen((e) => _handleNewArray(e.snapshot.value, 2));

@@ -1,60 +1,78 @@
-// familiar_screen.dart// familiar_screen.dart
+// familiar_screen.dart
 import 'package:flutter/material.dart';    
+import 'package:firebase_database/firebase_database.dart';
 import 'ecg_viewer_screen.dart';
-
-
+import 'chat_screen.dart';
+import 'reporte_screen.dart';
+import 'alertas_screen.dart';
 import '../widgets/device_status.dart';
 import '../widgets/app_menu.dart';
-import 'chat_screen.dart';  //
-import 'reporte_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
-class InterfazFamiliar extends StatelessWidget {
+class InterfazFamiliar extends StatefulWidget {
   const InterfazFamiliar({super.key});
+
+  @override
+  State<InterfazFamiliar> createState() => _InterfazFamiliarState();
+}
+
+class _InterfazFamiliarState extends State<InterfazFamiliar> {
+  final _alertasRef = FirebaseDatabase.instance.ref('Dispositivo/Wayne/ECG_Alertas');
+  int _cantidadAlertas = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _alertasRef.onValue.listen((event) {
+      final data = event.snapshot.value;
+      if (data is Map) {
+        setState(() {
+          _cantidadAlertas = data.length;
+        });
+      }
+    });
+    _setupFCM(); // 👈 Aquí llamas la función
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     appBar: const AppMenu(title: 'Resumen'),
+      appBar: const AppMenu(title: 'Resumen'),
       body: CustomScrollView(
         slivers: [
-          // 1) AppBar flotante con menú
-
-          // Nuevo bloque: Estado del dispositivo
-          // Indica si está conectado o desconectado
           const SliverToBoxAdapter(
             child: DeviceStatusBanner(),
           ),
-
-          // 2) “Pinned” con últimas alertas
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Card(
                 elevation: 2,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.notifications_active,
-                          size: 32, color: Colors.redAccent),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: InkWell(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AlertasScreen()),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.notifications_active, size: 32, color: Colors.redAccent),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '$_cantidadAlertas alerta${_cantidadAlertas != 1 ? 's' : ''} nueva${_cantidadAlertas != 1 ? 's' : ''}',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-
-          // 3) Acciones rápidas en grid
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             sliver: SliverGrid.count(
@@ -69,23 +87,22 @@ class InterfazFamiliar extends StatelessWidget {
                   color: Colors.blue,
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const ReporteScreen())),
+                    MaterialPageRoute(builder: (_) => const ReporteScreen()),
+                  ),
                 ),
                 _ActionCard(
                   icon: Icons.chat_bubble,
                   label: 'Ver Mensajes',
                   color: Colors.purple,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ChatScreen(
-                          myRole: 'familiar',
-                          otherRole: 'paciente',
-                        ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ChatScreen(
+                        myRole: 'familiar',
+                        otherRole: 'paciente',
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
                 _ActionCard(
                   icon: Icons.settings,
@@ -99,52 +116,19 @@ class InterfazFamiliar extends StatelessWidget {
                   color: Colors.purple,
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (_) => const EcgViewerScreen()),
+                    MaterialPageRoute(builder: (_) => const EcgViewerScreen()),
                   ),
                 ),
               ],
             ),
           ),
-
-          // 4) Sección “Histórico de acciones”
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
-            sliver: SliverToBoxAdapter(
-              child: Text(
-                'Histórico de acciones',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildListDelegate(
-              [
-                _HistoryItem(
-                  icon: Icons.insert_drive_file,
-                  title: 'Reportes generados',
-                  subtitle: '',
-                ),
-                _HistoryItem(
-                  icon: Icons.chat_bubble,
-                  title: 'Mensajes enviados',
-                  subtitle: '',
-                ),
-                _HistoryItem(
-                  icon: Icons.settings,
-                  title: 'Alertas configuradas',
-                  subtitle: '',
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
+          
         ],
       ),
     );
   }
 
-  static void _showInfo(BuildContext ctx, String titulo) {
+  void _showInfo(BuildContext ctx, String titulo) {
     showDialog(
       context: ctx,
       builder: (_) => AlertDialog(
@@ -156,9 +140,33 @@ class InterfazFamiliar extends StatelessWidget {
       ),
     );
   }
+
+
+  void _setupFCM() async {
+    final messaging = FirebaseMessaging.instance;
+
+      // Solicita permisos en iOS
+      await messaging.requestPermission();
+
+      // Token del dispositivo
+      final token = await messaging.getToken();
+      print('🔑 Token: $token');
+
+      // Mensajes cuando la app está en primer plano
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('📩 Mensaje en foreground: ${message.notification?.title}');
+        // Aquí podrías mostrar un snackbar o diálogo
+      });
+
+      // Mensajes cuando se hace clic y se abre la app
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        print('➡️ App abierta desde notificación');
+        // Navegar a pantalla de alertas, por ejemplo
+      });
+    }
+
 }
 
-// Tarjeta de acción rápida
 class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -175,7 +183,7 @@ class _ActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: color.withAlpha(0x1A), // 10% opacidad
+      color: color.withAlpha(0x1A),
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -196,43 +204,6 @@ class _ActionCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// Ítem de histórico
-class _HistoryItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _HistoryItem({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: Theme.of(context).primaryColor),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => _showDetail(context, title),
-    );
-  }
-
-  void _showDetail(BuildContext ctx, String title) {
-    showDialog(
-      context: ctx,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: const Text('Detalle en construcción.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-        ],
       ),
     );
   }

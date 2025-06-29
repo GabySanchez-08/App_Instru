@@ -22,25 +22,52 @@ class _ReporteScreenState extends State<ReporteScreen> {
     _cargarEventos();
   }
 
-  Future<void> _cargarEventos() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final snapshot = await FirebaseFirestore.instance
+  Future<String> _determinarUID() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final userDoc = await FirebaseFirestore.instance
         .collection('usuarios')
-        .doc(uid)
-        .collection('eventos')
-        .orderBy('hora_inicio', descending: true)
+        .doc(user!.uid)
         .get();
 
-    setState(() {
-      eventos = snapshot.docs.map((doc) => doc.data()).toList();
-    });
+    if (userDoc.exists && userDoc.data()!['rol'] == 'familiar') {
+      // Buscar UID de paciente asociado a ale@gmail.com
+      final query = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .where('email', isEqualTo: 'ale@gmail.com')
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        return query.docs.first.id;
+      } else {
+        throw Exception('Paciente ale@gmail.com no encontrado');
+      }
+    }
+    return user.uid;
+  }
+
+  Future<void> _cargarEventos() async {
+    try {
+      final uid = await _determinarUID();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(uid)
+          .collection('eventos')
+          .orderBy('hora_inicio', descending: true)
+          .get();
+
+      setState(() {
+        eventos = snapshot.docs.map((doc) => doc.data()).toList();
+      });
+    } catch (e) {
+      print('Error al cargar eventos: $e');
+    }
   }
 
   List<double> _parseList(String raw) {
     raw = raw.replaceAll('[', '').replaceAll(']', '');
     return raw.split(',').map((e) => double.tryParse(e.trim()) ?? 0).toList();
   }
-
 
   pw.Widget _graficoDeEvento(String label, List<double> data) {
     const double width = 300;
@@ -81,7 +108,6 @@ class _ReporteScreenState extends State<ReporteScreen> {
       ],
     );
   }
-
 
   Future<Uint8List> _generarPDF() async {
     final pdf = pw.Document();
@@ -135,8 +161,7 @@ class _ReporteScreenState extends State<ReporteScreen> {
                   ...ultimos.map((e) => Card(
                         child: ListTile(
                           title: Text('Tipo: ${e['tipo']} - BPM: ${e['BPM']}'),
-                          subtitle:
-                              Text('Hora: ${e['hora_inicio'] ?? '---'}'),
+                          subtitle: Text('Hora: ${e['hora_inicio'] ?? '---'}'),
                         ),
                       )),
                   const SizedBox(height: 20),
@@ -146,8 +171,7 @@ class _ReporteScreenState extends State<ReporteScreen> {
                       label: const Text('Generar PDF'),
                       onPressed: () async {
                         final pdfData = await _generarPDF();
-                        await Printing.layoutPdf(
-                            onLayout: (format) async => pdfData);
+                        await Printing.layoutPdf(onLayout: (format) async => pdfData);
                       },
                     ),
                   ),

@@ -7,10 +7,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'screens/login_screen.dart';
 import 'screens/paciente_screen.dart';
 import 'screens/familiar_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+
+// Este método maneja notificaciones cuando la app está cerrada
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('🔔 Notificación en segundo plano: ${message.notification?.title}');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(const CardioAlertApp());
 }
 
