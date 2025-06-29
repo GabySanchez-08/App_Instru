@@ -6,6 +6,7 @@ import 'ecg_viewer_screen.dart';
 import '../widgets/device_status.dart';
 import '../widgets/app_menu.dart';
 import 'chat_screen.dart';  //
+import 'reporte_screen.dart';
 
 class InterfazFamiliar extends StatelessWidget {
   const InterfazFamiliar({super.key});
@@ -66,7 +67,9 @@ class InterfazFamiliar extends StatelessWidget {
                   icon: Icons.insert_drive_file,
                   label: 'Generar Reporte',
                   color: Colors.blue,
-                  onTap: () => _showInfo(context, 'Exportando reporte...'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ReporteScreen())),
                 ),
                 _ActionCard(
                   icon: Icons.chat_bubble,

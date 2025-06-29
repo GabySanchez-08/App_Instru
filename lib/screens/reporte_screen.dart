@@ -1,13 +1,10 @@
-// reporte_screen.dart
-
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:screenshot/screenshot.dart';
-import '../widgets/grafico_derivacion.dart';
+import 'package:pdf/pdf.dart';
 
 class ReporteScreen extends StatefulWidget {
   const ReporteScreen({super.key});
@@ -18,7 +15,6 @@ class ReporteScreen extends StatefulWidget {
 
 class _ReporteScreenState extends State<ReporteScreen> {
   List<Map<String, dynamic>> eventos = [];
-  final ScreenshotController screenshotCtrl = ScreenshotController();
 
   @override
   void initState() {
@@ -45,17 +41,47 @@ class _ReporteScreenState extends State<ReporteScreen> {
     return raw.split(',').map((e) => double.tryParse(e.trim()) ?? 0).toList();
   }
 
-  Future<Uint8List> _crearGraficoComoImagen(
-      List<double> datos, String label) async {
-    final widget = Material(
-      child: GraficoDerivacion(
-        datos: datos.take(100).toList(),
-        label: label,
-      ),
-    );
 
-    return await screenshotCtrl.captureFromWidget(widget);
+  pw.Widget _graficoDeEvento(String label, List<double> data) {
+    const double width = 300;
+    const double height = 100;
+
+    final minY = data.reduce((a, b) => a < b ? a : b);
+    final maxY = data.reduce((a, b) => a > b ? a : b);
+    final rangeY = (maxY - minY) == 0 ? 1 : (maxY - minY);
+
+    final stepX = width / data.length;
+    final lines = <pw.Widget>[];
+
+    for (int i = 0; i < data.length; i++) {
+      final x = i * stepX;
+      final y = height - ((data[i] - minY) / rangeY * height);
+
+      lines.add(pw.Positioned(
+        left: x,
+        top: y,
+        child: pw.Container(
+          width: 1,
+          height: 1,
+          color: PdfColors.black,
+        ),
+      ));
+    }
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(label, style: const pw.TextStyle(fontSize: 12)),
+        pw.Container(
+          width: width,
+          height: height,
+          decoration: pw.BoxDecoration(border: pw.Border.all()),
+          child: pw.Stack(children: lines),
+        ),
+      ],
+    );
   }
+
 
   Future<Uint8List> _generarPDF() async {
     final pdf = pw.Document();
@@ -65,10 +91,6 @@ class _ReporteScreenState extends State<ReporteScreen> {
       final d2 = _parseList(e['D2']);
       final d3 = _parseList(e['D3']);
 
-      final d1img = await _crearGraficoComoImagen(d1, 'D1');
-      final d2img = await _crearGraficoComoImagen(d2, 'D2');
-      final d3img = await _crearGraficoComoImagen(d3, 'D3');
-
       pdf.addPage(
         pw.Page(
           build: (context) => pw.Column(
@@ -77,14 +99,11 @@ class _ReporteScreenState extends State<ReporteScreen> {
               pw.Text('Evento: ${e['tipo']}'),
               pw.Text('Hora: ${e['hora_inicio']} - BPM: ${e['BPM']}'),
               pw.SizedBox(height: 10),
-              pw.Text('Derivación D1'),
-              pw.Image(pw.MemoryImage(d1img)),
+              _graficoDeEvento('Derivación D1', d1.take(100).toList()),
               pw.SizedBox(height: 10),
-              pw.Text('Derivación D2'),
-              pw.Image(pw.MemoryImage(d2img)),
+              _graficoDeEvento('Derivación D2', d2.take(100).toList()),
               pw.SizedBox(height: 10),
-              pw.Text('Derivación D3'),
-              pw.Image(pw.MemoryImage(d3img)),
+              _graficoDeEvento('Derivación D3', d3.take(100).toList()),
               pw.Divider(),
             ],
           ),
