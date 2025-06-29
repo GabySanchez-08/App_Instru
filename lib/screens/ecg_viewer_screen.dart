@@ -1,5 +1,3 @@
-// lib/screens/ecg_viewer_screen.dart
-
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -14,21 +12,16 @@ class EcgViewerScreen extends StatefulWidget {
 }
 
 class _EcgViewerScreenState extends State<EcgViewerScreen> {
-  // Firebase
   late final DatabaseReference _refD1, _refD2, _refD3, _refBpm;
-  late final StreamSubscription<DatabaseEvent>
-      _subD1, _subD2, _subD3, _subBpm;
+  late final StreamSubscription<DatabaseEvent> _subD1, _subD2, _subD3, _subBpm;
 
-  // Buffers para mostrar en gráfico
   final List<FlSpot> _bufD1 = [];
   final List<FlSpot> _bufD2 = [];
   final List<FlSpot> _bufD3 = [];
 
-  // Buffers pendientes para graficar
   List<double> _pendingD1 = [], _pendingD2 = [], _pendingD3 = [];
   Timer? _timerD1, _timerD2, _timerD3;
 
-  int _counter = 0;
   double _bpm = 0;
 
   @override
@@ -67,30 +60,45 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
       case 1:
         _pendingD1 = parsed;
         _timerD1?.cancel();
-        _timerD1 = Timer.periodic(const Duration(milliseconds: 10), (_) => _tick(_pendingD1, _bufD1));
+        _timerD1 = Timer.periodic(
+          const Duration(milliseconds: 10),
+          (_) => _tick(_pendingD1, _bufD1),
+        );
         break;
       case 2:
         _pendingD2 = parsed;
         _timerD2?.cancel();
-        _timerD2 = Timer.periodic(const Duration(milliseconds: 10), (_) => _tick(_pendingD2, _bufD2));
+        _timerD2 = Timer.periodic(
+          const Duration(milliseconds: 10),
+          (_) => _tick(_pendingD2, _bufD2),
+        );
         break;
       case 3:
         _pendingD3 = parsed;
         _timerD3?.cancel();
-        _timerD3 = Timer.periodic(const Duration(milliseconds: 10), (_) => _tick(_pendingD3, _bufD3));
+        _timerD3 = Timer.periodic(
+          const Duration(milliseconds: 10),
+          (_) => _tick(_pendingD3, _bufD3),
+        );
         break;
     }
   }
 
   void _tick(List<double> pending, List<FlSpot> buffer) {
     if (pending.isEmpty) return;
-    setState(() {
-      final x = _counter++ / 100.0;
-      buffer.add(FlSpot(x, pending.removeAt(0)));
-      if (buffer.length > 500) {
-        buffer.removeAt(0); // Siempre mismo largo que lo pendiente
-      }
-    });
+    final y = pending.removeAt(0);
+    buffer.add(FlSpot(0, y)); // El valor X se recalcula abajo
+
+    if (buffer.length > 400) {
+      buffer.removeAt(0);
+    }
+
+    // Reasignar los valores X según índice para mantener ventana estable
+    for (int i = 0; i < buffer.length; i++) {
+      buffer[i] = FlSpot(i / 100.0, buffer[i].y); // 100 Hz → 5 s máx
+    }
+
+    setState(() {});
   }
 
   List<double>? _parse(Object? raw) {
@@ -117,11 +125,9 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
       );
     }
 
-    final minX = 0.0;
-    final maxX = spots.isEmpty ? 1.0 : spots.last.x;
     return LineChartData(
-      minX: minX,
-      maxX: maxX,
+      minX: 0.0,
+      maxX: 5.0,
       borderData: FlBorderData(show: true),
       gridData: FlGridData(show: true),
       titlesData: FlTitlesData(
