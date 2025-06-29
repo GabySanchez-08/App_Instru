@@ -1,6 +1,5 @@
 // familiar_screen.dart
 import 'package:flutter/material.dart';    
-import 'package:firebase_database/firebase_database.dart';
 import 'ecg_viewer_screen.dart';
 import 'chat_screen.dart';
 import 'reporte_screen.dart';
@@ -17,20 +16,10 @@ class InterfazFamiliar extends StatefulWidget {
 }
 
 class _InterfazFamiliarState extends State<InterfazFamiliar> {
-  final _alertasRef = FirebaseDatabase.instance.ref('Dispositivo/Wayne/ECG_Alertas');
-  int _cantidadAlertas = 0;
 
   @override
   void initState() {
     super.initState();
-    _alertasRef.onValue.listen((event) {
-      final data = event.snapshot.value;
-      if (data is Map) {
-        setState(() {
-          _cantidadAlertas = data.length;
-        });
-      }
-    });
     _setupFCM(); // 👈 Aquí llamas la función
   }
 
@@ -62,8 +51,8 @@ class _InterfazFamiliarState extends State<InterfazFamiliar> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            '$_cantidadAlertas alerta${_cantidadAlertas != 1 ? 's' : ''} nueva${_cantidadAlertas != 1 ? 's' : ''}',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            'Ver alertas nuevas',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],

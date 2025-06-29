@@ -8,7 +8,7 @@ class DeviceStatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ref = FirebaseDatabase.instance
-        .ref('Dispositivo/Wayne/ECG_Alertas/alerta/hora'); // lectura directa
+        .ref('Dispositivo/Wayne/ECG_Alertas/hora'); // lectura directa
 
     return StreamBuilder<DatabaseEvent>(
       stream: ref.onValue,

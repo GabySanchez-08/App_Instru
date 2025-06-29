@@ -127,7 +127,7 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
 
     return LineChartData(
       minX: 0.0,
-      maxX: 5.0,
+      maxX: 4.0,
       borderData: FlBorderData(show: true),
       gridData: FlGridData(show: true),
       titlesData: FlTitlesData(
