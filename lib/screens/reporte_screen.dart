@@ -46,6 +46,7 @@ class _ReporteScreenState extends State<ReporteScreen> {
     return user.uid;
   }
 
+
   Future<void> _cargarEventos() async {
     try {
       final uid = await _determinarUID();
@@ -53,16 +54,25 @@ class _ReporteScreenState extends State<ReporteScreen> {
           .collection('usuarios')
           .doc(uid)
           .collection('eventos')
-          .orderBy('hora_inicio', descending: true)
           .get();
 
+      final docs = snapshot.docs;
+
+      // Ordenar manualmente por ID del documento (convertido a int)
+      docs.sort((a, b) =>
+          int.parse(b.id).compareTo(int.parse(a.id))); // Descendente
+
+      // Tomar solo los 5 últimos
+      final ultimosDocs = docs.take(5).toList();
+
       setState(() {
-        eventos = snapshot.docs.map((doc) => doc.data()).toList();
+        eventos = ultimosDocs.map((doc) => doc.data()).toList();
       });
     } catch (e) {
       print('Error al cargar eventos: $e');
     }
-  }
+  } 
+
 
   List<double> _parseList(String raw) {
     raw = raw.replaceAll('[', '').replaceAll(']', '');
@@ -142,7 +152,7 @@ class _ReporteScreenState extends State<ReporteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ultimos = eventos.length > 3 ? eventos.take(3).toList() : eventos;
+    final ultimos = eventos.length > 5 ? eventos.take(5).toList() : eventos;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Reporte de Eventos')),
