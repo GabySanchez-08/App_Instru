@@ -106,36 +106,7 @@ class InterfazPaciente extends StatelessWidget {
             ),
           ),
 
-          // 4) Histórico breve
-          const SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: SliverToBoxAdapter(
-              child: Text(
-                'Histórico Reciente',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildListDelegate([
-              _HistoryItem(
-                icon: Icons.insert_chart,
-                title: 'Reportes',
-                subtitle: '3 generados esta semana',
-              ),
-              _HistoryItem(
-                icon: Icons.message,
-                title: 'Mensajes',
-                subtitle: '2 últimos mensajes recibidos',
-              ),
-              _HistoryItem(
-                icon: Icons.alarm,
-                title: 'Recordatorios',
-                subtitle: '1 pendiente hoy',
-              ),
-              const SizedBox(height: 24),
-            ]),
-          ),
+
         ],
       ),
     );
@@ -146,7 +117,7 @@ class InterfazPaciente extends StatelessWidget {
       context: ctx,
       builder: (_) => AlertDialog(
         title: Text(titulo),
-        content: const Text('Funcionalidad en construcción.'),
+        content: const Text('Enviado con éxito.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
         ],
@@ -234,43 +205,6 @@ class _ActionCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// Ítem de histórico
-class _HistoryItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _HistoryItem({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: Theme.of(context).primaryColor),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => _showDetail(context, title),
-    );
-  }
-
-  void _showDetail(BuildContext ctx, String title) {
-    showDialog(
-      context: ctx,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: const Text('Detalle en construcción.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-        ],
       ),
     );
   }

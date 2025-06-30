@@ -184,27 +184,29 @@ class _ReporteScreenState extends State<ReporteScreen> {
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.picture_as_pdf),
                       label: const Text('Generar PDF'),
-                      onPressed: () async {
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (_) => const Center(child: CircularProgressIndicator()),
-                        );
 
-                        try {
-                          final pdfData = await _generarPDF();
-                          Navigator.of(context).pop(); // Cierra el diálogo de carga
+                  onPressed: () async {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => const Center(child: CircularProgressIndicator()),
+                    );
 
-                          await Printing.layoutPdf(
-                            onLayout: (format) async => pdfData,
-                          );
-                        } catch (e) {
-                          Navigator.of(context).pop(); // Cierra si hay error
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error al generar PDF: $e')),
-                          );
-                        }
-                      },
+                    try {
+                      final pdfData = await _generarPDF();
+                      Navigator.of(context).pop(); // Cierra el diálogo de carga
+
+                      await Printing.layoutPdf(
+                        onLayout: (format) async => pdfData,
+                      );
+                    } catch (e) {
+                      Navigator.of(context).pop(); // Cierra si hay error
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error al generar PDF: $e')),
+                      );
+                    }
+                  },
+
 
                     ),
                   ),
