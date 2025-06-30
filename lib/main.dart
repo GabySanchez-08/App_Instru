@@ -1,31 +1,48 @@
-// main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/paciente_screen.dart';
 import 'screens/familiar_screen.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
-// Este método maneja notificaciones cuando la app está cerrada
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  print('🔔 Notificación en segundo plano: ${message.notification?.title}');
-}
+String? ultimaHoraDetectada;
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // Inicializar notificaciones locales
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosInit = DarwinInitializationSettings();
+  const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+  // Inicializar notificaciones FCM en segundo plano
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Iniciar listener a Realtime Database
+  _escucharAlertas();
+
   runApp(const CardioAlertApp());
+}
+
+// 🟡 Manejo de mensajes FCM en segundo plano (si decides usarlo más adelante)
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  // Aquí puedes hacer algo con el mensaje, si lo necesitas
 }
 
 class CardioAlertApp extends StatelessWidget {
   const CardioAlertApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -38,12 +55,12 @@ class CardioAlertApp extends StatelessWidget {
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Aún conectando con Firebase
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -52,10 +69,8 @@ class AuthGate extends StatelessWidget {
 
         final user = snapshot.data;
         if (user == null) {
-          // No hay sesión, mostramos login
           return const LoginScreen();
         } else {
-          // Ya hay un usuario, obtenemos su rol para decidir pantalla
           return FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
                 .collection('usuarios')
@@ -68,8 +83,7 @@ class AuthGate extends StatelessWidget {
                 );
               }
               if (!snap2.hasData || !snap2.data!.exists) {
-                // Usuario sin perfil de Firestore; lo enviamos a registro
-                return const LoginScreen(); // O tu RegisterScreen
+                return const LoginScreen(); // o RegisterScreen si lo tienes
               }
               final rol = snap2.data!['rol'] as String;
               if (rol == 'paciente') {
@@ -83,4 +97,49 @@ class AuthGate extends StatelessWidget {
       },
     );
   }
+}
+
+void _escucharAlertas() {
+  final ref = FirebaseDatabase.instance.ref('Dispositivo/Wayne/ECG_Alertas');
+
+  ref.onValue.listen((DatabaseEvent event) {
+    final data = event.snapshot.value;
+    if (data is Map && data.containsKey('hora_inicio')) {
+      final hora = data['hora_inicio'];
+      final mensaje = data['mensaje'] ?? 'Alerta detectada';
+
+      if (hora != null && hora != ultimaHoraDetectada && hora != '--:--') {
+        ultimaHoraDetectada = hora;
+
+        _mostrarNotificacion(
+          titulo: 'Nueva Alerta ECG',
+          cuerpo: 'Alerta detectada a las $hora: $mensaje',
+        );
+      }
+    }
+  });
+}
+
+void _mostrarNotificacion({required String titulo, required String cuerpo}) {
+  const androidDetails = AndroidNotificationDetails(
+    'canal_alertas',
+    'Alertas ECG',
+    importance: Importance.max,
+    priority: Priority.high,
+    showWhen: true,
+  );
+
+  const iosDetails = DarwinNotificationDetails();
+
+  final notificationDetails = NotificationDetails(
+    android: androidDetails,
+    iOS: iosDetails,
+  );
+
+  flutterLocalNotificationsPlugin.show(
+    0,
+    titulo,
+    cuerpo,
+    notificationDetails,
+  );
 }
