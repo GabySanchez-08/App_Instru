@@ -19,25 +19,44 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // Inicializar notificaciones locales
+  // 🔔 Solicitar permiso para notificaciones (iOS)
+  final settings = await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+  print('🔔 Permiso de notificaciones: ${settings.authorizationStatus}');
+
+  // 📲 Inicializar notificaciones locales
   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
   const iosInit = DarwinInitializationSettings();
   const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
   await flutterLocalNotificationsPlugin.initialize(initSettings);
 
-  // Inicializar notificaciones FCM en segundo plano
+  // 🟡 Escuchar notificaciones de FCM en segundo plano
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Iniciar listener a Realtime Database
+  // 🟢 Escuchar notificaciones de FCM en primer plano
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    final notification = message.notification;
+    if (notification != null) {
+      _mostrarNotificacion(
+        titulo: notification.title ?? 'Alerta',
+        cuerpo: notification.body ?? '',
+      );
+    }
+  });
+
+  // 🔴 Escuchar cambios en Realtime Database
   _escucharAlertas();
 
   runApp(const CardioAlertApp());
 }
 
-// 🟡 Manejo de mensajes FCM en segundo plano (si decides usarlo más adelante)
+// 🟡 Handler para mensajes FCM en segundo plano
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  // Aquí puedes hacer algo con el mensaje, si lo necesitas
+  // Aquí podrías hacer algo útil si deseas
 }
 
 class CardioAlertApp extends StatelessWidget {
@@ -83,7 +102,7 @@ class AuthGate extends StatelessWidget {
                 );
               }
               if (!snap2.hasData || !snap2.data!.exists) {
-                return const LoginScreen(); // o RegisterScreen si lo tienes
+                return const LoginScreen();
               }
               final rol = snap2.data!['rol'] as String;
               if (rol == 'paciente') {
@@ -99,6 +118,7 @@ class AuthGate extends StatelessWidget {
   }
 }
 
+// 🔴 Escucha la base de datos en tiempo real
 void _escucharAlertas() {
   final ref = FirebaseDatabase.instance.ref('Dispositivo/Wayne/ECG_Alertas');
 
@@ -120,6 +140,7 @@ void _escucharAlertas() {
   });
 }
 
+// 🔔 Muestra una notificación local
 void _mostrarNotificacion({required String titulo, required String cuerpo}) {
   const androidDetails = AndroidNotificationDetails(
     'canal_alertas',
@@ -129,7 +150,11 @@ void _mostrarNotificacion({required String titulo, required String cuerpo}) {
     showWhen: true,
   );
 
-  const iosDetails = DarwinNotificationDetails();
+  final iosDetails = DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+  );
 
   final notificationDetails = NotificationDetails(
     android: androidDetails,

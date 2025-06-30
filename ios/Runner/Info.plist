@@ -1,9 +1,15 @@
+
+
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
 	<key>NSUserNotificationAlertUsageDescription</key>
 	<string>Esta app necesita mostrar notificaciones de alerta</string>
+	<key>NSUserNotificationSoundUsageDescription</key>
+	<string>Esta app necesita usar sonido en notificaciones</string>
+	<key>NSUserNotificationBadgeUsageDescription</key>
+	<string>Esta app necesita mostrar insignias de notificación</string>
 	<key>UIBackgroundModes</key>
 	<array>
 	<string>fetch</string>
@@ -14,8 +20,6 @@
 	<key>NSAllowsArbitraryLoads</key>
 	<true/>
 	</dict>
-	<key>FirebaseAppDelegateProxyEnabled</key>
-	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
