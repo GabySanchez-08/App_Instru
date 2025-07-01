@@ -73,6 +73,15 @@ flutter:
       - assets/Paso2.png
       - assets/Paso3.png
       - assets/Paso4.png
+      - assets/recomendacion1.png
+      - assets/recomendacion2.png
+      - assets/recomendacion3.png
+      - assets/recomendacion4.png
+      - assets/recomendacion5.png
+      - assets/recomendacion6.png
+      - assets/recomendacion7.png
+      - assets/recomendacion8.png
+
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

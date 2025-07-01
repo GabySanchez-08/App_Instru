@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -57,9 +58,7 @@ class _ReporteScreenState extends State<ReporteScreen> {
 
       final docs = snapshot.docs;
 
-      // Ordenar por ID numérico descendente
-      docs.sort((a, b) =>
-          int.parse(b.id).compareTo(int.parse(a.id)));
+      docs.sort((a, b) => int.parse(b.id).compareTo(int.parse(a.id)));
 
       setState(() {
         eventos = docs.map((doc) {
@@ -94,7 +93,6 @@ class _ReporteScreenState extends State<ReporteScreen> {
     }
   }
 
-
   Future<Uint8List> _generarPDF() async {
     final pdf = pw.Document();
 
@@ -118,6 +116,16 @@ class _ReporteScreenState extends State<ReporteScreen> {
         if (imagenD3 != null) imgBytesD3 = await networkImageToByte(imagenD3);
       } catch (_) {}
 
+      // Obtener solo el primer valor de BPM si es un string
+      String bpmRaw = e['BPM'] ?? '';
+      double? bpmValue;
+      try {
+        final parsed = jsonDecode(bpmRaw);
+        if (parsed is List && parsed.isNotEmpty) {
+          bpmValue = parsed.first.toDouble();
+        }
+      } catch (_) {}
+
       pdf.addPage(
         pw.Page(
           build: (context) => pw.Column(
@@ -126,20 +134,15 @@ class _ReporteScreenState extends State<ReporteScreen> {
               pw.Text('Evento: ${e['tipo']}'),
               pw.Text('Fecha: ${formatearFecha(e['hora_inicio'])}'),
               pw.Text('Hora: ${formatearHora(e['hora_inicio'])}'),
-              pw.Text('BPM: ${e['BPM'] ?? "--"}'),
+              pw.Text('BPM: ${bpmValue?.toStringAsFixed(0) ?? "--"}'),
               pw.SizedBox(height: 10),
-              if (imgBytesD1 != null) ...[
-                //pw.Text('Imagen D1:'),
-                pw.Image(pw.MemoryImage(imgBytesD1)),
-              ],
+              if (imgBytesD1 != null) pw.Image(pw.MemoryImage(imgBytesD1)),
               if (imgBytesD2 != null) ...[
                 pw.SizedBox(height: 10),
-                //pw.Text('Imagen D2:'),
                 pw.Image(pw.MemoryImage(imgBytesD2)),
               ],
               if (imgBytesD3 != null) ...[
                 pw.SizedBox(height: 10),
-                //pw.Text('Imagen D3:'),
                 pw.Image(pw.MemoryImage(imgBytesD3)),
               ],
               pw.Divider(),
@@ -151,7 +154,6 @@ class _ReporteScreenState extends State<ReporteScreen> {
 
     return pdf.save();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -171,43 +173,51 @@ class _ReporteScreenState extends State<ReporteScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
-                  ...ultimos5.map((e) => Card(
-                        child: ListTile(
-                          title:
-                              Text('Tipo: ${e['tipo']} - BPM: ${e['BPM'] ?? "--"}'),
-                          subtitle: Text(
-                              'Fecha: ${formatearFecha(e['hora_inicio'])} • Hora: ${formatearHora(e['hora_inicio'])}'),
+                  ...ultimos5.map((e) {
+                    String bpmRaw = e['BPM'] ?? '';
+                    double? bpmValue;
+                    try {
+                      final parsed = jsonDecode(bpmRaw);
+                      if (parsed is List && parsed.isNotEmpty) {
+                        bpmValue = parsed.first.toDouble();
+                      }
+                    } catch (_) {}
+
+                    return Card(
+                      child: ListTile(
+                        title: Text('Tipo: ${e['tipo']} - BPM: ${bpmValue?.toStringAsFixed(0) ?? "--"}'),
+                        subtitle: Text(
+                          'Fecha: ${formatearFecha(e['hora_inicio'])} • Hora: ${formatearHora(e['hora_inicio'])}',
                         ),
-                      )),
+                      ),
+                    );
+                  }),
                   const SizedBox(height: 20),
                   Center(
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.picture_as_pdf),
                       label: const Text('Generar PDF'),
+                      onPressed: () async {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => const Center(child: CircularProgressIndicator()),
+                        );
 
-                  onPressed: () async {
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) => const Center(child: CircularProgressIndicator()),
-                    );
+                        try {
+                          final pdfData = await _generarPDF();
+                          Navigator.of(context).pop();
 
-                    try {
-                      final pdfData = await _generarPDF();
-                      Navigator.of(context).pop(); // Cierra el diálogo de carga
-
-                      await Printing.layoutPdf(
-                        onLayout: (format) async => pdfData,
-                      );
-                    } catch (e) {
-                      Navigator.of(context).pop(); // Cierra si hay error
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error al generar PDF: $e')),
-                      );
-                    }
-                  },
-
-
+                          await Printing.layoutPdf(
+                            onLayout: (format) async => pdfData,
+                          );
+                        } catch (e) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error al generar PDF: $e')),
+                          );
+                        }
+                      },
                     ),
                   ),
                 ],
@@ -215,6 +225,4 @@ class _ReporteScreenState extends State<ReporteScreen> {
             ),
     );
   }
-
-
 }

@@ -37,7 +37,7 @@ class _TipsSaludState extends State<TipsSalud> {
         itemCount: _tips.length,
         itemBuilder: (context, index) {
           final tip = _tips[index];
-          final assetName = 'assets/recomendacion${index + 1}.jpg';
+          final assetName = 'assets/recomendacion${index + 1}.png';
           //final assetName = 'assets/recomendacion1.png';
           return Column(
             children: [

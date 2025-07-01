@@ -35,7 +35,7 @@ class DeviceStatusBanner extends StatelessWidget {
                 color = Colors.green;
               } else {
                 text = 'Estado: Desconectado';
-                color = Colors.red;
+                color = Colors.red; 
               }
             } catch (_) {
               text = 'Estado: Error de formato';
