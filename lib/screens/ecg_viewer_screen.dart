@@ -1,4 +1,3 @@
-// ...importaciones igual...
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -20,7 +19,6 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
   final List<FlSpot> _bufD2 = [];
   final List<FlSpot> _bufD3 = [];
 
-  List<double> _pendingD1 = [], _pendingD2 = [], _pendingD3 = [];
   Timer? _timerD1, _timerD2, _timerD3;
 
   double _bpm = 0;
@@ -53,41 +51,61 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
     });
   }
 
+  // Maneja el nuevo array recibido desde Firebase
   void _handleNewArray(Object? raw, int derivada) {
     List<double>? parsed = _parse(raw);
     if (parsed == null || parsed.isEmpty) return;
 
     switch (derivada) {
       case 1:
-        _pendingD1 = parsed;
-        _bufD1.clear();  // Limpiar el buffer antes de graficar
-        _tick(_pendingD1, _bufD1); // Actualizar el gráfico con el nuevo conjunto de datos
+        _timerD1?.cancel();  // Detener animación anterior
+        _bufD1.clear();      // Limpiar gráfico anterior
+        _animateData(parsed, _bufD1, 1); // Animar el gráfico con el nuevo conjunto de datos
         break;
       case 2:
-        _pendingD2 = parsed;
-        _bufD2.clear();  // Limpiar el buffer antes de graficar
-        _tick(_pendingD2, _bufD2);
+        _timerD2?.cancel();
+        _bufD2.clear();
+        _animateData(parsed, _bufD2, 2);
         break;
       case 3:
-        _pendingD3 = parsed;
-        _bufD3.clear();  // Limpiar el buffer antes de graficar
-        _tick(_pendingD3, _bufD3);
+        _timerD3?.cancel();
+        _bufD3.clear();
+        _animateData(parsed, _bufD3, 3);
         break;
     }
   }
 
-  void _tick(List<double> pending, List<FlSpot> buffer) {
-    if (pending.isEmpty) return;
+  // Animación de los puntos a 100Hz
+  void _animateData(List<double> data, List<FlSpot> buffer, int derivada) {
+    int index = 0;
+    final timer = Timer.periodic(const Duration(milliseconds: 10), (t) {
+      if (index >= data.length) {
+        t.cancel();  // Detener el timer una vez que todos los puntos hayan sido agregados
+        return;
+      }
 
-    // Limpiar el buffer y graficar los nuevos puntos desde cero
-    buffer.clear();
-    for (int i = 0; i < pending.length; i++) {
-      buffer.add(FlSpot(i / 100.0, pending[i])); // Graficar cada nuevo punto desde el principio
+      final x = index / 100.0;  // 100 Hz → x en segundos
+      final y = data[index];
+      buffer.add(FlSpot(x, y));
+      index++;
+
+      setState(() {}); // Redibujar el gráfico con el nuevo punto
+    });
+
+    switch (derivada) {
+      case 1:
+        _timerD1 = timer;
+        break;
+      case 2:
+        _timerD2 = timer;
+        break;
+      case 3:
+        _timerD3 = timer;
+        break;
     }
-
-    setState(() {});  // Redibujar el gráfico
   }
 
+  // Parseo del array de datos de Firebase
   List<double>? _parse(Object? raw) {
     Object? latest = raw;
     if (raw is Map) {
@@ -102,10 +120,11 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
     return null;
   }
 
+  // Datos de la gráfica
   LineChartData _chartData(List<FlSpot> spots, Color color) {
     return LineChartData(
       minX: 0.0,
-      maxX: 3.0,
+      maxX: 3.0,  // Limitar el eje X a 3 segundos
       borderData: FlBorderData(show: true),
       gridData: FlGridData(show: true),
       titlesData: FlTitlesData(
@@ -138,6 +157,7 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
     );
   }
 
+  // Construcción de la gráfica
   Widget _buildChart(String titulo, List<FlSpot> buf, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,9 +176,6 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
     _subD2.cancel();
     _subD3.cancel();
     _subBpm.cancel();
-    _timerD1?.cancel();
-    _timerD2?.cancel();
-    _timerD3?.cancel();
     super.dispose();
   }
 
