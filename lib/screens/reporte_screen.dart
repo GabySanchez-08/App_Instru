@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
+
 class ReporteScreen extends StatefulWidget {
   const ReporteScreen({super.key});
 
@@ -72,16 +73,23 @@ class _ReporteScreenState extends State<ReporteScreen> {
     }
   }
 
+
   String formatearFecha(String iso) {
-    final date = DateTime.tryParse(iso);
-    if (date == null) return '---';
-    return DateFormat('dd/MM/yyyy').format(date);
+    try {
+      final date = DateFormat('HH:mm:ss yyyy-MM-dd').parse(iso);
+      return DateFormat('dd/MM/yyyy').format(date);
+    } catch (e) {
+      return '---';
+    }
   }
 
   String formatearHora(String iso) {
-    final date = DateTime.tryParse(iso);
-    if (date == null) return '---';
-    return DateFormat('HH:mm:ss').format(date);
+    try {
+      final date = DateFormat('HH:mm:ss yyyy-MM-dd').parse(iso);
+      return DateFormat('HH:mm:ss').format(date);
+    } catch (e) {
+      return '---';
+    }
   }
 
   Future<Uint8List> networkImageToByte(String url) async {

@@ -60,46 +60,45 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
     switch (derivada) {
       case 1:
         _pendingD1 = parsed;
-        _timerD1?.cancel();
-        _timerD1 = Timer.periodic(
-          const Duration(milliseconds: 10),
-          (_) => _tick(_pendingD1, _bufD1),
-        );
+        _bufD1.clear();  // Limpiar el buffer antes de graficar
+        _tick(_pendingD1, _bufD1); // Actualizar el gráfico con el nuevo conjunto de datos
+        _pendingD1.clear(); // Limpiar los datos para preparar el siguiente conjunto
         break;
       case 2:
         _pendingD2 = parsed;
-        _timerD2?.cancel();
-        _timerD2 = Timer.periodic(
-          const Duration(milliseconds: 10),
-          (_) => _tick(_pendingD2, _bufD2),
-        );
+        _bufD2.clear();  // Limpiar el buffer antes de graficar
+        _tick(_pendingD2, _bufD2);
+        _pendingD2.clear();
         break;
       case 3:
         _pendingD3 = parsed;
-        _timerD3?.cancel();
-        _timerD3 = Timer.periodic(
-          const Duration(milliseconds: 10),
-          (_) => _tick(_pendingD3, _bufD3),
-        );
+        _bufD3.clear();  // Limpiar el buffer antes de graficar
+        _tick(_pendingD3, _bufD3);
+        _pendingD3.clear();
         break;
     }
   }
 
   void _tick(List<double> pending, List<FlSpot> buffer) {
     if (pending.isEmpty) return;
-    final y = pending.removeAt(0);
-    buffer.add(FlSpot(0, y));
 
-    if (buffer.length > 400) {
-      buffer.removeAt(0);
+    // Agregar todos los puntos del nuevo array al buffer
+    for (var y in pending) {
+      buffer.add(FlSpot(0, y));
+    }
+
+    // Limpiar el buffer si supera los 300 puntos
+    if (buffer.length > 300) {
+      buffer.clear();
     }
 
     for (int i = 0; i < buffer.length; i++) {
-      buffer[i] = FlSpot(i / 100.0, buffer[i].y);
+      buffer[i] = FlSpot(i / 100.0, buffer[i].y); // Actualizar los puntos con el tiempo
     }
 
-    setState(() {});
+    setState(() {});  // Redibujar el gráfico
   }
+
 
   List<double>? _parse(Object? raw) {
     Object? latest = raw;
@@ -116,6 +115,8 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
   }
 
   LineChartData _chartData(List<FlSpot> spots, Color color) {
+
+
     return LineChartData(
       minX: 0.0,
       maxX: 4.0,

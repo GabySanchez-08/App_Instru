@@ -22,22 +22,21 @@ class _AlertasScreenState extends State<AlertasScreen> {
   String? ultimaHoraVista;
   Map<dynamic, dynamic>? ultimoEvento;
 
-  // 🔹 FORMATO DE FECHA
-  String formatearFecha(String fechaHora) {
+  String formatearFecha(String iso) {
     try {
-      final date = DateTime.parse(fechaHora);
-      return DateFormat('dd/MM/yyyy').format(date.toLocal());
-    } catch (_) {
-      return "--/--/----";
+      final date = DateFormat('HH:mm:ss yyyy-MM-dd').parse(iso);
+      return DateFormat('dd/MM/yyyy').format(date);
+    } catch (e) {
+      return '---';
     }
   }
 
-  String formatearHora(String fechaHora) {
+  String formatearHora(String iso) {
     try {
-      final date = DateTime.parse(fechaHora);
-      return DateFormat('HH:mm:ss').format(date.toLocal());
-    } catch (_) {
-      return "--:--:--";
+      final date = DateFormat('HH:mm:ss yyyy-MM-dd').parse(iso);
+      return DateFormat('HH:mm:ss').format(date);
+    } catch (e) {
+      return '---';
     }
   }
 
@@ -154,7 +153,7 @@ class _AlertasScreenState extends State<AlertasScreen> {
               ListTile(
                 leading: const Icon(Icons.warning, color: Colors.red),
                 title: Text(mensaje, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('Inicio del evento: $horaInicio'),
+                subtitle: Text('Fecha: ${formatearFecha(data['hora_inicio'] ?? "")} • Hora: ${formatearHora(data['hora_inicio'] ?? "")}'),
               ),
               const SizedBox(height: 24),
               const Text('Opciones disponibles',

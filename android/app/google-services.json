@@ -1,15 +1,16 @@
 {
   "project_info": {
     "project_number": "541115914533",
+    "firebase_url": "https://cardiocore-ae5f9-default-rtdb.firebaseio.com",
     "project_id": "cardiocore-ae5f9",
     "storage_bucket": "cardiocore-ae5f9.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:541115914533:android:89a497779219c03c6da2cc",
+        "mobilesdk_app_id": "1:541115914533:android:9cdc656a66ecdcb86da2cc",
         "android_client_info": {
-          "package_name": "com.example.cardio_core"
+          "package_name": "com.example.cardio_core1"
         }
       },
       "oauth_client": [],
