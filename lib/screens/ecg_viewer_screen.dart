@@ -60,45 +60,32 @@ class _EcgViewerScreenState extends State<EcgViewerScreen> {
     switch (derivada) {
       case 1:
         _pendingD1 = parsed;
-        _timerD1?.cancel();
-        _timerD1 = Timer.periodic(
-          const Duration(milliseconds: 10),
-          (_) => _tick(_pendingD1, _bufD1),
-        );
+        _bufD1.clear();  // Limpiar el buffer antes de graficar
+        _tick(_pendingD1, _bufD1); // Actualizar el gráfico con el nuevo conjunto de datos
         break;
       case 2:
         _pendingD2 = parsed;
-        _timerD2?.cancel();
-        _timerD2 = Timer.periodic(
-          const Duration(milliseconds: 10),
-          (_) => _tick(_pendingD2, _bufD2),
-        );
+        _bufD2.clear();  // Limpiar el buffer antes de graficar
+        _tick(_pendingD2, _bufD2);
         break;
       case 3:
         _pendingD3 = parsed;
-        _timerD3?.cancel();
-        _timerD3 = Timer.periodic(
-          const Duration(milliseconds: 10),
-          (_) => _tick(_pendingD3, _bufD3),
-        );
+        _bufD3.clear();  // Limpiar el buffer antes de graficar
+        _tick(_pendingD3, _bufD3);
         break;
     }
   }
 
   void _tick(List<double> pending, List<FlSpot> buffer) {
     if (pending.isEmpty) return;
-    final y = pending.removeAt(0);
-    buffer.add(FlSpot(0, y));
 
-    if (buffer.length > 300) {
-      buffer.removeAt(0);
+    // Limpiar el buffer y graficar los nuevos puntos desde cero
+    buffer.clear();
+    for (int i = 0; i < pending.length; i++) {
+      buffer.add(FlSpot(i / 100.0, pending[i])); // Graficar cada nuevo punto desde el principio
     }
 
-    for (int i = 0; i < buffer.length; i++) {
-      buffer[i] = FlSpot(i / 100.0, buffer[i].y);
-    }
-
-    setState(() {});
+    setState(() {});  // Redibujar el gráfico
   }
 
   List<double>? _parse(Object? raw) {
